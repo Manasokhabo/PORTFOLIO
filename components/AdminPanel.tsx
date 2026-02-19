@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project } from '../types';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-// Fix: Ensure modular storage functions are imported correctly from 'firebase/storage'
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { initializeApp, getApps, getApp } from 'https://esm.sh/firebase@10.8.1/app';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://esm.sh/firebase@10.8.1/storage';
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyALTwIfX0TcABVk6hH2CYbVEf3VTsisewA",
@@ -55,7 +54,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [currentProfilePhoto, setCurrentProfilePhoto] = useState('');
 
   const getStorageInstance = () => {
-    // Uses the hardcoded user config to ensure seamless client-side experience
     const app = getApps().length > 0 ? getApp() : initializeApp(FIREBASE_CONFIG);
     return getStorage(app);
   };
