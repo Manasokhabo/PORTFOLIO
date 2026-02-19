@@ -1,41 +1,42 @@
 
-import dbConnect, { Project } from './lib/db';
+import { db } from './lib/db';
+import { collection, getDocs, addDoc, query, orderBy } from 'https://esm.sh/firebase@10.8.1/firestore';
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+
   try {
-    await dbConnect();
+    const projectsCol = collection(db, 'projects');
 
     if (req.method === 'GET') {
-      const projects = await Project.find({}).sort({ createdAt: -1 });
+      const q = query(projectsCol, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const projects = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
       return res.status(200).json(projects);
     }
 
     if (req.method === 'POST') {
       const { title, category, image, description } = req.body;
-      
       if (!title || !category || !image) {
-        console.error("POST /api/projects - Missing required fields", req.body);
-        return res.status(400).json({ error: 'Title, Category, and Image URL are required' });
+        return res.status(400).json({ error: 'Missing fields' });
       }
-
-      // 'image' is expected to be a Cloudinary URL string, not raw bytes
-      const newProject = await Project.create({
+      const newDoc = await addDoc(projectsCol, {
         title,
         category,
         image,
-        description
+        description,
+        createdAt: new Date().toISOString()
       });
-      
-      console.log("Project created successfully:", newProject._id);
-      return res.status(201).json(newProject);
+      return res.status(201).json({ id: newDoc.id, title, category, image, description });
     }
 
     res.setHeader('Allow', ['GET', 'POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error) {
-    console.error("PROJECTS_API_CRITICAL_FAILURE:");
-    console.error("Message:", error.message);
-    console.error("Stack:", error.stack);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    console.error('FIREBASE_PROJECTS_ERROR:', error);
+    return res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
 }
