@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project } from '../types';
+// Fixed Firebase imports using versioned ESM.sh links to ensure modular SDK compatibility and resolve missing export errors
 import { initializeApp, getApps, getApp } from 'https://esm.sh/firebase@10.8.1/app';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://esm.sh/firebase@10.8.1/storage';
 
@@ -105,12 +106,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const uploadToFirebase = async (file: File, folder: string) => {
     try {
       const storage = getStorageInstance();
-      const storageRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
+      // Using a simpler path structure to avoid potential rules issues
+      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+      const storageRef = ref(storage, `${folder}/${fileName}`);
+      
       const snapshot = await uploadBytes(storageRef, file);
-      return await getDownloadURL(snapshot.ref);
-    } catch (err) {
-      console.error("Firebase Storage Error:", err);
-      throw new Error("Could not upload to Firebase Storage. Check Storage bucket rules.");
+      const url = await getDownloadURL(snapshot.ref);
+      return url;
+    } catch (err: any) {
+      console.error("FULL FIREBASE ERROR:", err);
+      if (err.code === 'storage/unauthorized') {
+        throw new Error("Firebase Storage Permission Denied. Please set your Storage Rules to 'allow read, write: if true;' in the Firebase Console.");
+      }
+      throw new Error(`Upload Failed: ${err.message}`);
     }
   };
 
