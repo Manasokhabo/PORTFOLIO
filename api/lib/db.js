@@ -4,17 +4,13 @@ import mongoose from 'mongoose';
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside the Vercel dashboard');
+  throw new Error('MONGODB_URI is missing from Vercel environment variables.');
 }
 
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development and prevent connection exhaustion in serverless functions.
- */
-let cached = global.mongoose;
+let cached = globalThis.mongoose;
 
 if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+  cached = globalThis.mongoose = { conn: null, promise: null };
 }
 
 async function dbConnect() {
@@ -25,20 +21,25 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      maxPoolSize: 10, // Maintain a small pool for serverless efficiency
+      maxPoolSize: 1,
+      // Increased timeout to help with initial connection from Vercel
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 30000,
     };
 
-    console.log("Creating new MongoDB connection pool...");
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log("MongoDB connection established.");
-      return mongoose;
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
+      console.log('MongoDB Connected Successfully');
+      return m;
+    }).catch(err => {
+      cached.promise = null; 
+      console.error('MongoDB Connection Error:', err.message);
+      throw new Error(`Database connection failed: ${err.message}`);
     });
   }
   
   try {
     cached.conn = await cached.promise;
   } catch (e) {
-    console.error("MongoDB Connection Error:", e);
     cached.promise = null;
     throw e;
   }
@@ -46,7 +47,6 @@ async function dbConnect() {
   return cached.conn;
 }
 
-// Project Schema
 const ProjectSchema = new mongoose.Schema({
   title: { type: String, required: true },
   category: { type: String, required: true },
@@ -55,7 +55,6 @@ const ProjectSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Message Schema
 const MessageSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
@@ -63,7 +62,13 @@ const MessageSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const SettingSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  value: { type: String, required: true }
+});
+
 export const Project = mongoose.models.Project || mongoose.model('Project', ProjectSchema);
 export const Message = mongoose.models.Message || mongoose.model('Message', MessageSchema);
+export const Setting = mongoose.models.Setting || mongoose.model('Setting', SettingSchema);
 
 export default dbConnect;
