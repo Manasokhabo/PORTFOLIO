@@ -175,15 +175,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     );
   }
 
-  return (
-    <section className="py-24 bg-zinc-950 min-h-screen text-white">
-      {/* ... (বাকি পুরো ডিজাইন কোডটি তোর আগের কোড থেকে নিয়ে এখানে বসবে) ... */}
-      <div className="max-w-6xl mx-auto px-6">
-        {/* ডিজাইন একদম আগের মতো থাকবে, আমি জাস্ট লজিক পাল্টে দিয়েছি */}
-        <p className="text-center text-zinc-500 uppercase text-[8px] tracking-widest">Database Sync Active</p>
-      </div>
-    </section>
-  );
-};
+return (
+  <section className="py-24 bg-zinc-950 min-h-screen text-white">
+    <div className="max-w-6xl mx-auto px-6">
+      {/* এখানে তোর সব ট্যাব এবং ফর্মের কোড থাকতে হবে */}
+      {activeTab === 'projects' && ( <div> ... </div> )}
+    </div>
+  </section>
+);
 
 export default AdminPanel;
